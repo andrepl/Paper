@@ -1,0 +1,38 @@
+From 2d0f7d92552bd3d0bde0ee0088d4df4a5a79e2d0 Mon Sep 17 00:00:00 2001
+From: Andre <andrepleblanc@gmail.com>
+Date: Tue, 17 Dec 2019 16:49:21 -0500
+Subject: [PATCH] Implement BeeAngerEvent
+
+
+diff --git a/src/main/java/net/minecraft/server/EntityBee.java b/src/main/java/net/minecraft/server/EntityBee.java
+index 81f2205c..edc68b61 100644
+--- a/src/main/java/net/minecraft/server/EntityBee.java
++++ b/src/main/java/net/minecraft/server/EntityBee.java
+@@ -1,5 +1,6 @@
+ package net.minecraft.server;
+ 
++import com.destroystokyo.paper.event.entity.BeeAngerEvent;
+ import com.destroystokyo.paper.event.entity.BeeStingEvent;
+ import com.google.common.collect.Lists;
+ import org.bukkit.craftbukkit.potion.CraftPotionUtil;
+@@ -543,11 +544,13 @@ public class EntityBee extends EntityAnimal implements EntityBird {
+     }
+ 
+     public boolean a(Entity entity) {
+-        this.setAnger(400 + this.random.nextInt(400));
+-        if (entity instanceof EntityLiving) {
+-            this.setLastDamager((EntityLiving) entity);
++        BeeAngerEvent event = new BeeAngerEvent((Bee) this.getBukkitEntity(), entity.getBukkitEntity(), 400 + this.random.nextInt(400));
++        if (event.callEvent()) {
++            this.setAnger(event.getNewAnger());
++            if (entity instanceof EntityLiving) {
++                this.setLastDamager((EntityLiving) entity);
++            }
+         }
+-
+         return true;
+     }
+ 
+-- 
+2.23.0
+

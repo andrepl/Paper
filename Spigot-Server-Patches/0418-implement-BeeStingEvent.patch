@@ -1,0 +1,77 @@
+From 14e3ad7cad57b6545b96f3398a4538af973af9dd Mon Sep 17 00:00:00 2001
+From: Andre <andrepleblanc@gmail.com>
+Date: Tue, 17 Dec 2019 01:16:12 -0500
+Subject: [PATCH] implement BeeStingEvent
+
+
+diff --git a/src/main/java/net/minecraft/server/EntityBee.java b/src/main/java/net/minecraft/server/EntityBee.java
+index 4862e9d1b..81f2205c2 100644
+--- a/src/main/java/net/minecraft/server/EntityBee.java
++++ b/src/main/java/net/minecraft/server/EntityBee.java
+@@ -1,6 +1,10 @@
+ package net.minecraft.server;
+ 
++import com.destroystokyo.paper.event.entity.BeeStingEvent;
+ import com.google.common.collect.Lists;
++import org.bukkit.craftbukkit.potion.CraftPotionUtil;
++import org.bukkit.entity.Bee;
++
+ import java.util.Comparator;
+ import java.util.EnumSet;
+ import java.util.Iterator;
+@@ -139,28 +143,36 @@ public class EntityBee extends EntityAnimal implements EntityBird {
+     public boolean B(Entity entity) {
+         boolean flag = entity.damageEntity(DamageSource.a((EntityLiving) this), (float) ((int) this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue()));
+ 
+-        if (flag) {
+-            this.a((EntityLiving) this, entity);
+-            if (entity instanceof EntityLiving) {
+-                ((EntityLiving) entity).q(((EntityLiving) entity).df() + 1);
+-                byte b0 = 0;
+-
+-                if (this.world.getDifficulty() == EnumDifficulty.NORMAL) {
+-                    b0 = 10;
+-                } else if (this.world.getDifficulty() == EnumDifficulty.HARD) {
+-                    b0 = 18;
+-                }
++        byte b0 = 0;
+ 
+-                if (b0 > 0) {
+-                    ((EntityLiving) entity).addEffect(new MobEffect(MobEffects.POISON, b0 * 20, 0));
+-                }
++        if (entity instanceof EntityLiving) {
++            if (this.world.getDifficulty() == EnumDifficulty.NORMAL) {
++                b0 = 10;
++            } else if (this.world.getDifficulty() == EnumDifficulty.HARD) {
++                b0 = 18;
+             }
++        }
++
++        MobEffect effect = new MobEffect(MobEffects.POISON, b0 * 20, 0);
++        BeeStingEvent event = new BeeStingEvent((Bee) this.getBukkitEntity(), ((EntityLiving) entity).getBukkitLivingEntity(), CraftPotionUtil.toBukkit(effect));
++        boolean stung = event.callEvent();
+ 
+-            this.setHasStung(true);
+-            this.setGoalTarget((EntityLiving) null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit
++        if (stung) {
++            if (flag) {
++                if (entity instanceof EntityLiving) {
++                    this.a((EntityLiving) this, entity);
++                    ((EntityLiving) entity).q(((EntityLiving) entity).df() + 1);
++                    if (b0 > 0 && event.getEffect() != null) {
++                        ((EntityLiving) entity).addEffect(CraftPotionUtil.fromBukkit(event.getEffect()));
++                    }
++                }
++            }
++            this.setHasStung(stung && event.getLoseStinger());
+             this.a(SoundEffects.ENTITY_BEE_STING, 1.0F, 1.0F);
+         }
+ 
++        this.setGoalTarget((EntityLiving) null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET, true); // CraftBukkit
++
+         return flag;
+     }
+ 
+-- 
+2.23.0
+
